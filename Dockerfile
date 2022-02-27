@@ -1,18 +1,20 @@
-FROM python:3.9-slim-bullseye AS compile-image
+FROM python:3.8.12-slim-buster
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
-    apt-get install -y \
-    build-essential && \
-    rm -rf /var/lib/apt/lists/*
+ARG ENV=local
 
+ENV ENV=${ENV} \
+  PYTHONFAULTHANDLER=1 \
+  PYTHONUNBUFFERED=1 \
+  PYTHONHASHSEED=random \
+  PIP_NO_CACHE_DIR=off \
+  PIP_DISABLE_PIP_VERSION_CHECK=on \
+  PIP_DEFAULT_TIMEOUT=100 
+
+# Initialize docker image
+RUN apt-get update && apt-get install -y
 WORKDIR /app
 
-RUN python -m venv /app
-# Make sure we use the virtualenv:
-ENV PATH="/app/bin:$PATH"
-
-RUN pip config --user set global.extra-index-url https://www.piwheels.org/simple
-
+# Copy only requirements to cache them in docker layer
 COPY requirements.txt .
 
 RUN python -m pip install -U pip && \
@@ -20,18 +22,6 @@ RUN python -m pip install -U pip && \
 
 COPY . /app
 
-# FROM python:3.9-slim-bullseye
+# Project initialization:
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get update && \
-    apt-get install -y libatlas-base-dev libopenjp2-7 && \
-    rm -rf /var/lib/apt/lists/*
-
-# WORKDIR /app
-
-# COPY --from=compile-image /app /app
-
-# Make sure we use the virtualenv:
-# ENV PATH="/app/bin:$PATH"
-
-# Pass parameters to the container run or mount your config.json into /app/
 ENTRYPOINT [ "python3", "-u", "pycryptobot.py" ]
